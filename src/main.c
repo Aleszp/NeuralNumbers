@@ -58,27 +58,30 @@ int main(int argc, char** argv)
 	gsl_matrix* B=gsl_matrix_alloc(height*width,256);
 	
 	//train data
-	for(uint8_t	jj=0;jj<3;jj++)
-	for(uint32_t ii=0;ii<count;ii++)
+	for(uint8_t	jj=0;jj<5;jj++)
 	{
-		//for(uint8_t	jj=0;jj<3;jj++)
+		for(uint32_t ii=0;ii<count;ii++)
 		{
-			forwardPass(ii,trainingData,height*width,layers,probabilities,C);
-			backwardPass(ii,trainingData,trainingLabels,height*width,layers,probabilities,rate,delta1,delta2,error1,error2,A,B,C);
-			printProbabilities(trainingLabels,probabilities,ii);
-			//forwardPass(ii,trainingData,height*width,layers,probabilities,C);
-			//printProbabilities(trainingLabels,probabilities,ii);
+			//for(uint8_t	jj=0;jj<3;jj++)
+			{
+				forwardPass(ii,trainingData,height*width,layers,probabilities,C);
+				backwardPass(ii,trainingData,trainingLabels,height*width,layers,probabilities,rate,delta1,delta2,error1,error2,A,B,C);
+				printProbabilities(trainingLabels,probabilities,ii);
+				//forwardPass(ii,trainingData,height*width,layers,probabilities,C);
+				//printProbabilities(trainingLabels,probabilities,ii);
+			}
+			//fprintf(stdout,"\n");
+			
+			//if(ii>3)
+			//	break;
+			//loss=calculateLoss(probabilities,trainingLabels,ii);
+			//fprintf(stdout,"Loss function calculation %lf.\n",loss);
+			if((ii%(count/20))==0)
+				fprintf(stderr,"*");
 		}
-		//fprintf(stdout,"\n");
-		
-		//if(ii>3)
-		//	break;
-		//loss=calculateLoss(probabilities,trainingLabels,ii);
-		//fprintf(stdout,"Loss function calculation %lf.\n",loss);
-		if((ii%(count/20))==0)
-			fprintf(stderr,"*");
+		fprintf(stderr,"\n");
+		fprintf(stdout,"\n");
 	}
-	fprintf(stderr,"\n");
 	
 	gsl_matrix_free(A);
 	gsl_matrix_free(B);
