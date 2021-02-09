@@ -23,13 +23,16 @@ void printDigit(uint8_t* trainingData,int32_t height,int32_t width,int32_t id,ui
 void printProbabilities(uint8_t* labels,gsl_matrix* probabilities,uint32_t id)
 {
 	//fprintf(stderr,"Probabilities(%lu,%lu):\n",probabilities->size1,probabilities->size2);
-	
+	double sum=0.0;
+	double tmp=0.0;
 	fprintf(stdout,"Label: %u, probabilities: ",labels[id]);
 	for(uint8_t jj=0;jj<10;jj++)
 	{
-		fprintf(stdout,"%0.5lf,",gsl_matrix_get(probabilities,0,jj));
+		tmp=gsl_matrix_get(probabilities,0,jj);
+		fprintf(stdout,"%0.5lf,",tmp);
+		sum+=tmp;
 	}
-	fprintf(stdout,"\n");
+	fprintf(stdout,"sum=%lf,\n",sum);
 }
 
 void printOther(uint8_t max,gsl_matrix* what,char* text)

@@ -17,7 +17,7 @@
 int main(int argc, char** argv)
 {
 	srand (time (NULL));	//Prepare random number generator
-	double rate=0.2;	//Rate of error correction
+	double rate=1.0;	//Rate of error correction
 	if(argc!=5)
 	{
 		fprintf(stderr,"Wrong number of parameters.\n");
@@ -35,51 +35,63 @@ int main(int argc, char** argv)
 	//int32_t ii=1;	//id of tested image [0;count)
 	//printDigit(trainingData,height,width,ii,trainingLabels[ii]);
 	
-	//double loss=0;
+	double loss=0.0;
+	double lossSingle=0.0;
 	//double loss_accepted=0.1;//((double)round(((double)count)*0.01));
 	
 	uint8_t	numberOfLayers=3;
-	uint32_t numberOfLayersPoints[]={width*height,256,10};
+	uint32_t numberOfLayersPoints[]={width*height,HIDDEN,10};
 	
 	gsl_matrix** layers=prepareLayers(numberOfLayers,numberOfLayersPoints);
 	//printLayers(layers,numberOfLayers,numberOfLayersPoints);
 	gsl_matrix* probabilities=gsl_matrix_alloc(1,10);
 	
 	//int32_t id=0;
-	gsl_matrix* C=gsl_matrix_calloc(1,256);
+	gsl_matrix* C=gsl_matrix_calloc(1,HIDDEN);
 	//forwardPass(id,trainingData,height*width,layers,probabilities,C);
 	//fprintf(stdout,"Test loss function for %i: %lf;\n",trainingLabels[0],calculateLoss(&probabilities,trainingLabels,0));
 	//printProbabilities(probabilities,0);
-	gsl_matrix* delta1=gsl_matrix_alloc(1,256);
+	gsl_matrix* delta1=gsl_matrix_alloc(1,HIDDEN);
 	gsl_matrix* delta2=gsl_matrix_alloc(1,10);
-	gsl_matrix* error1=gsl_matrix_alloc(1,256);
+	gsl_matrix* error1=gsl_matrix_alloc(1,HIDDEN);
 	gsl_matrix* error2=gsl_matrix_alloc(1,10);
-	gsl_matrix* A=gsl_matrix_alloc(256,10);
-	gsl_matrix* B=gsl_matrix_alloc(height*width,256);
+	gsl_matrix* A=gsl_matrix_alloc(HIDDEN,10);
+	gsl_matrix* B=gsl_matrix_alloc(height*width,HIDDEN);
 	
+	uint8_t max=6;
 	//train data
-	for(uint8_t	jj=0;jj<5;jj++)
+	for(uint8_t	jj=0;jj<max;jj++)
 	{
+		loss=0.0;
 		for(uint32_t ii=0;ii<count;ii++)
 		{
-			//for(uint8_t	jj=0;jj<3;jj++)
+			//for(uint8_t	jj=0;jj<max;jj++)
 			{
 				forwardPass(ii,trainingData,height*width,layers,probabilities,C);
 				backwardPass(ii,trainingData,trainingLabels,height*width,layers,probabilities,rate,delta1,delta2,error1,error2,A,B,C);
 				printProbabilities(trainingLabels,probabilities,ii);
+				lossSingle=calculateLoss(probabilities,trainingLabels,ii);
+				loss+=lossSingle;
 				//forwardPass(ii,trainingData,height*width,layers,probabilities,C);
 				//printProbabilities(trainingLabels,probabilities,ii);
 			}
 			//fprintf(stdout,"\n");
 			
-			//if(ii>3)
-			//	break;
-			//loss=calculateLoss(probabilities,trainingLabels,ii);
-			//fprintf(stdout,"Loss function calculation %lf.\n",loss);
+			if(jj==(max-1))
+			{
+				lossSingle=calculateLoss(probabilities,trainingLabels,ii);
+				fprintf(stdout,"Loss function calculation %lf.\n\n",lossSingle);
+			}
 			if((ii%(count/20))==0)
 				fprintf(stderr,"*");
+				
+			//break;
 		}
+		//break;
+		loss/=(double)count;
 		fprintf(stderr,"\n");
+		fprintf(stderr,"Pass %u/%u finished. Average loss per digit: %lf.\n",jj+1,max,loss);
+		fprintf(stdout,"Pass %u/%u finished. Average loss per digit: %lf.\n",jj+1,max,loss);
 		fprintf(stdout,"\n");
 	}
 	
