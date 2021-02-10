@@ -141,19 +141,20 @@ void forwardPass(int32_t id,uint8_t* data,gsl_matrix** layers,gsl_matrix** weigh
 	
 }
 
-void backwardPass(int32_t id,uint8_t* data,uint8_t* labels,gsl_matrix** layers,gsl_matrix** weights,double rate,gsl_matrix* delta1,gsl_matrix* error1,gsl_matrix* realProbabilities)
+void backwardPass(int32_t id,uint8_t* data,uint8_t* labels,gsl_matrix** layers,gsl_matrix** weights,double rate,gsl_matrix** dWeights,gsl_matrix** dLayers)
 {
 	for(uint8_t jj=0;jj<10;jj++)
 	{
-		gsl_matrix_set(realProbabilities,0,jj,jj==labels[id]?-1.0:0.0);
+		gsl_matrix_set(dLayers[1],0,jj,jj==labels[id]?-1.0:0.0);
 	}
-	gsl_matrix_add(realProbabilities,layers[1]);
+	//fprintf(stderr,"dLayers[1]:(%lu,%lu)+=layers[1]:(%lu,%lu)\n",dLayers[1]->size1,dLayers[1]->size2,layers[1]->size1,layers[1]->size2);
+	gsl_matrix_add(dLayers[1],layers[1]);
 		
-	//fprintf(stderr,"layers[0]:(%lu,%lu), realProbabilities:(%lu,%lu)=delta1:(%lu,%lu)\n",layers[0]->size1,layers[0]->size2,realProbabilities->size1,realProbabilities->size2,delta1->size1,delta1->size2);
-	gsl_blas_dgemm(CblasTrans, CblasNoTrans,rate,layers[0],realProbabilities,0.0, delta1);
+	//fprintf(stderr,"layers[0]:(%lu,%lu), dLayers[1]:(%lu,%lu)=dWeights[0]:(%lu,%lu)\n",layers[0]->size1,layers[0]->size2,dLayers[1]->size1,dLayers[1]->size2,dWeights[0]->size1,dWeights[0]->size2);
+	gsl_blas_dgemm(CblasTrans, CblasNoTrans,rate,layers[0],dLayers[1],0.0, dWeights[0]);
 
 	//fprintf(stderr,"weights[0]:(%lu,%lu)-=delta1:(%lu,%lu)\n",weights[0]->size1,weights[0]->size2,delta1->size1,delta1->size2);
-	gsl_matrix_sub(weights[0], delta1);
+	gsl_matrix_sub(weights[0], dWeights[0]);
 	
 	/*for(uint8_t jj=0;jj<10;jj++)
 	{

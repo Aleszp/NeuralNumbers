@@ -43,18 +43,13 @@ int main(int argc, char** argv)
 	
 	gsl_matrix** layers=prepareLayers(numberOfLayers,numberOfLayersPoints);
 	gsl_matrix** weights=prepareWeights(numberOfLayers,numberOfLayersPoints);
-	
+		
 	//allocate memory for backward pass temporary matrices to reduce allocation/deallocation of memory	
-	gsl_matrix* delta1=gsl_matrix_alloc(numberOfLayersPoints[0],numberOfLayersPoints[1]);
-	gsl_matrix* error1=gsl_matrix_alloc(1,numberOfLayersPoints[1]);
+	gsl_matrix** dLayers=prepareLayers(numberOfLayers,numberOfLayersPoints);	
+	gsl_matrix** dWeights=prepareWeights(numberOfLayers,numberOfLayersPoints);
 	
-	//gsl_matrix* delta2=gsl_matrix_alloc(numberOfLayersPoints[0],numberOfLayersPoints[1]);
-	//gsl_matrix* error2=gsl_matrix_alloc(1,numberOfLayersPoints[1]);
-	
-	gsl_matrix* realProbabilities=gsl_matrix_alloc(1,numberOfLayersPoints[1]);
-	
-	uint8_t max=3;
-	uint32_t correct=0;
+	const uint8_t max=3;		//set maximum number of iterations
+	uint32_t correct=0;			//count how many digits were recognised correctly
 	
 	//train network
 	fprintf(stdout,"Training network with %u passes of %u digits:\n",max,count);
@@ -67,7 +62,7 @@ int main(int argc, char** argv)
 		{
 			forwardPass(ii,trainingData,layers,weights);
 			printProbabilities(trainingLabels,layers[1],ii);
-			backwardPass(ii,trainingData,trainingLabels,layers,weights,rate,delta1,error1,realProbabilities);
+			backwardPass(ii,trainingData,trainingLabels,layers,weights,rate,dWeights,dLayers);
 			lossSingle=calculateLoss(layers[1],trainingLabels,ii);
 			loss+=lossSingle;
 			correct+=testImage(ii,trainingLabels,layers[1]);
@@ -131,14 +126,10 @@ int main(int argc, char** argv)
 	free(trainingLabels);
 	free(testData);
 	free(testLabels);
-	
-	gsl_matrix_free(realProbabilities);
-	gsl_matrix_free(delta1);
-	gsl_matrix_free(error1);
-	//gsl_matrix_free(delta2);
-	//gsl_matrix_free(error2);
-	
+		
 	unloadLayers(layers,numberOfLayers);
+	unloadLayers(dLayers,numberOfLayers);
 	unloadWeights(weights,numberOfLayers);
+	unloadWeights(dWeights,numberOfLayers);
 	return OK;
 }
