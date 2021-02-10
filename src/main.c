@@ -67,15 +67,15 @@ int main(int argc, char** argv)
 		loss=0.0;
 		for(uint32_t ii=0;ii<count;ii++)
 		{
-			for(uint8_t	jj=0;jj<max;jj++)
+			//for(uint8_t	jj=0;jj<max;jj++)
 			{
 				forwardPass(ii,trainingData,numberOfLayersPoints[0]-1,layers,probabilities);
-				backwardPass(ii,trainingData,trainingLabels,numberOfLayersPoints[0]-1,layers,probabilities,rate,delta1,error1,A,realProbabilities);
 				printProbabilities(trainingLabels,probabilities,ii);
+				backwardPass(ii,trainingData,trainingLabels,numberOfLayersPoints[0]-1,layers,probabilities,rate,delta1,error1,A,realProbabilities);
 				lossSingle=calculateLoss(probabilities,trainingLabels,ii);
 				loss+=lossSingle;
-				//forwardPass(ii,trainingData,height*width,layers,probabilities,C);
-				//printProbabilities(trainingLabels,probabilities,ii);
+				forwardPass(ii,trainingData,numberOfLayersPoints[0]-1,layers,probabilities);
+				printProbabilities(trainingLabels,probabilities,ii);
 			}
 			//fprintf(stdout,"\n");
 			
@@ -90,7 +90,7 @@ int main(int argc, char** argv)
 			//break;
 		}
 		fprintf(stderr,"\n");
-		break;
+		//break;
 		loss/=(double)count;
 		
 		fprintf(stderr,"Pass %u/%u finished. Average loss per digit: %lf.\n",jj+1,max,loss);
