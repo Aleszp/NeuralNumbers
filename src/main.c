@@ -17,7 +17,7 @@
 int main(int argc, char** argv)
 {
 	srand (time (NULL));	//Prepare random number generator
-	double rate=1.0;	//Rate of error correction
+	double rate=0.1;	//Rate of error correction
 	if(argc!=5)
 	{
 		fprintf(stderr,"Wrong number of parameters.\n");
@@ -39,24 +39,26 @@ int main(int argc, char** argv)
 	double lossSingle=0.0;
 	//double loss_accepted=0.1;//((double)round(((double)count)*0.01));
 	
-	uint8_t	numberOfLayers=3;
-	uint32_t numberOfLayersPoints[]={width*height,HIDDEN,10};
+	uint8_t	numberOfLayers=2;
+	uint32_t numberOfLayersPoints[]={width*height+1,10};
 	
 	gsl_matrix** layers=prepareLayers(numberOfLayers,numberOfLayersPoints);
-	//printLayers(layers,numberOfLayers,numberOfLayersPoints);
-	gsl_matrix* probabilities=gsl_matrix_alloc(1,10);
+	
+	gsl_matrix* probabilities=gsl_matrix_alloc(1,numberOfLayersPoints[1]);
+	gsl_matrix* realProbabilities=gsl_matrix_alloc(1,numberOfLayersPoints[1]);
 	
 	//int32_t id=0;
-	gsl_matrix* C=gsl_matrix_calloc(1,HIDDEN);
+	//gsl_matrix* C=gsl_matrix_calloc(1,height*width);
 	//forwardPass(id,trainingData,height*width,layers,probabilities,C);
 	//fprintf(stdout,"Test loss function for %i: %lf;\n",trainingLabels[0],calculateLoss(&probabilities,trainingLabels,0));
 	//printProbabilities(probabilities,0);
-	gsl_matrix* delta1=gsl_matrix_alloc(1,HIDDEN);
-	gsl_matrix* delta2=gsl_matrix_alloc(1,10);
-	gsl_matrix* error1=gsl_matrix_alloc(1,HIDDEN);
-	gsl_matrix* error2=gsl_matrix_alloc(1,10);
-	gsl_matrix* A=gsl_matrix_alloc(HIDDEN,10);
-	gsl_matrix* B=gsl_matrix_alloc(height*width,HIDDEN);
+	//gsl_matrix* delta1=gsl_matrix_alloc(1,HIDDEN);
+	//gsl_matrix* delta1=gsl_matrix_alloc(1,numberOfLayersPoints[1]);
+	gsl_matrix* delta1=gsl_matrix_alloc(numberOfLayersPoints[0],numberOfLayersPoints[1]);
+	//gsl_matrix* error1=gsl_matrix_alloc(1,HIDDEN);
+	gsl_matrix* error1=gsl_matrix_alloc(1,numberOfLayersPoints[1]);
+	gsl_matrix* A=gsl_matrix_alloc(numberOfLayersPoints[0],numberOfLayersPoints[1]);
+	//gsl_matrix* B=gsl_matrix_alloc(height*width,HIDDEN);
 	
 	uint8_t max=6;
 	//train data
@@ -65,10 +67,10 @@ int main(int argc, char** argv)
 		loss=0.0;
 		for(uint32_t ii=0;ii<count;ii++)
 		{
-			//for(uint8_t	jj=0;jj<max;jj++)
+			for(uint8_t	jj=0;jj<max;jj++)
 			{
-				forwardPass(ii,trainingData,height*width,layers,probabilities,C);
-				backwardPass(ii,trainingData,trainingLabels,height*width,layers,probabilities,rate,delta1,delta2,error1,error2,A,B,C);
+				forwardPass(ii,trainingData,numberOfLayersPoints[0]-1,layers,probabilities);
+				backwardPass(ii,trainingData,trainingLabels,numberOfLayersPoints[0]-1,layers,probabilities,rate,delta1,error1,A,realProbabilities);
 				printProbabilities(trainingLabels,probabilities,ii);
 				lossSingle=calculateLoss(probabilities,trainingLabels,ii);
 				loss+=lossSingle;
@@ -77,7 +79,7 @@ int main(int argc, char** argv)
 			}
 			//fprintf(stdout,"\n");
 			
-			if(jj==(max-1))
+			//if(jj==(max-1))
 			{
 				lossSingle=calculateLoss(probabilities,trainingLabels,ii);
 				fprintf(stdout,"Loss function calculation %lf.\n\n",lossSingle);
@@ -87,20 +89,21 @@ int main(int argc, char** argv)
 				
 			//break;
 		}
-		//break;
-		loss/=(double)count;
 		fprintf(stderr,"\n");
+		break;
+		loss/=(double)count;
+		
 		fprintf(stderr,"Pass %u/%u finished. Average loss per digit: %lf.\n",jj+1,max,loss);
 		fprintf(stdout,"Pass %u/%u finished. Average loss per digit: %lf.\n",jj+1,max,loss);
 		fprintf(stdout,"\n");
 	}
-	
+	printLayers(layers,numberOfLayers,numberOfLayersPoints);
 	gsl_matrix_free(A);
-	gsl_matrix_free(B);
+	//gsl_matrix_free(B);
 	gsl_matrix_free(error1);
-	gsl_matrix_free(error2);
+	//gsl_matrix_free(error2);
 	gsl_matrix_free(delta1);
-	gsl_matrix_free(delta2);
+	//gsl_matrix_free(delta2);
 	
 	/*do
 	{
@@ -160,7 +163,8 @@ int main(int argc, char** argv)
 	//free(testLabels);
 	
 	gsl_matrix_free(probabilities);
-	gsl_matrix_free(C);
+	gsl_matrix_free(realProbabilities);
+	//gsl_matrix_free(C);
 	unloadLayers(layers,numberOfLayers);
 	return OK;
 }
