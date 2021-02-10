@@ -78,3 +78,37 @@ void printLayers(gsl_matrix** layers,uint8_t numberOfLayers,uint32_t* numberOfLa
 	}
 	fprintf(stdout,"\n");
 }
+
+void printLayers2(gsl_matrix** layers,uint8_t numberOfLayers,uint32_t* numberOfLayersPoints)
+{
+	fprintf(stdout,"\n");
+	for(uint8_t ii=1;ii<numberOfLayers;ii++)
+	{
+		if(ii==0)
+		{
+			fprintf(stdout,"Layer %u ^T (%u,%u):\n",ii,1,numberOfLayersPoints[ii]);
+			for(uint32_t jj=0;jj<numberOfLayersPoints[ii];jj++)
+			{
+				fprintf(stdout,"%0.5lf;",gsl_matrix_get(layers[ii],0,jj));
+							}
+			fprintf(stdout,"\n\n");
+		}
+		else
+		{
+			fprintf(stdout,"Layer %u (%u,%u):\n",ii,numberOfLayersPoints[ii-1],numberOfLayersPoints[ii]);
+			
+			for(uint32_t jj=0;jj<numberOfLayersPoints[ii];jj++)
+			{
+				for(uint32_t kk=0;kk<numberOfLayersPoints[ii-1];kk++)
+				{
+					fprintf(stdout,"%0.5lf;",gsl_matrix_get(layers[ii],kk,jj));
+					if(kk%28==27)
+						fprintf(stdout,"\n");
+				}
+				fprintf(stdout,"\n\n");
+			}
+			fprintf(stdout,"\n\n\n");
+		}
+	}
+	fprintf(stdout,"\n");
+}

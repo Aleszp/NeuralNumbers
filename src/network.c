@@ -8,30 +8,23 @@
 #include "output.h"
 
 
-void testImage(int32_t id,uint8_t* data, int32_t dataSize,uint8_t* labels,gsl_matrix** layers,gsl_matrix* probabilities)
+int testImage(int32_t id,uint8_t* labels,gsl_matrix* probabilities)
 {
-	int32_t offset=id*dataSize;
-	
-	gsl_matrix* A=gsl_matrix_alloc(dataSize,1); 
-	
-	for(int ii=0;ii<dataSize;ii++)
+	double maxProb=0.0;
+	double tmp=0.0;
+	uint8_t	label=10;
+	for(uint8_t jj=0;jj<10;jj++)
 	{
-		//A->data[ii]=
-		gsl_matrix_set(A,ii,1,((double) data[ii+offset])/255.0);
+		tmp=gsl_matrix_get(probabilities,0,jj);
+		if(tmp>maxProb)
+		{
+			maxProb=tmp;
+			label=jj;
+		}
 	}
-	
-	gsl_matrix* C=gsl_matrix_alloc(dataSize,HIDDEN);
-	
-	
-	
-	//find what image is most similiar to
-	//multiply input layer by matrix
-	gsl_blas_dgemm (CblasNoTrans, CblasNoTrans,1.0, A, layers[0],0.0, C);
-	//multiply intermediate layer by matrix and return probabilities in output layer by matrix
-	gsl_blas_dgemm (CblasNoTrans, CblasNoTrans,1.0, C, layers[1],0.0, probabilities);
-
-	gsl_matrix_free(A);
-	gsl_matrix_free(C);
+	if(label==labels[id])
+		return 1;
+	return 0;
 }
 
 gsl_matrix** prepareLayers(uint8_t numberOfLayers,uint32_t*	numberOfLayersPoints)
@@ -76,16 +69,16 @@ double calculateLoss(gsl_matrix* probabilities,uint8_t* labels, int32_t id)
 {
 	double loss=0.0;
 	double tmp=0.0;
-	//double yy,yy2;
+	const double epsilon=1e-9;
+	
 	uint8_t label=labels[id];
 	for(uint8_t jj=0;jj<10;jj++)
 	{
 		if(label==jj)
 		{
 			tmp=gsl_matrix_get(probabilities,0,jj);
-			loss-=log(tmp>0?tmp:0.000001);
+			loss-=log(tmp>0?tmp:epsilon);				//add small epsilon as failsafe for 0
 		}
-		//loss-=(((label==jj)?1.0:0.0)*log(gsl_matrix_get(probabilities,0,jj)));
 	}
 	
 	return loss;
@@ -128,10 +121,10 @@ void forwardPass(int32_t id,uint8_t* data, int32_t dataSize,gsl_matrix** layers,
 	
 }
 
-void backwardPass(int32_t id,uint8_t* data,uint8_t* labels,int32_t dataSize,gsl_matrix** layers,gsl_matrix* probabilities,double rate,gsl_matrix* delta1,gsl_matrix* error1,gsl_matrix* A,gsl_matrix* realProbabilities)
+void backwardPass(int32_t id,uint8_t* data,uint8_t* labels,int32_t dataSize,gsl_matrix** layers,gsl_matrix* probabilities,double rate,gsl_matrix* delta1,gsl_matrix* error1,gsl_matrix* realProbabilities)
 {
 	//double tmp=0.0;
-	double loss=0.0;
+	
 	//printOther(10,probabilities,"Probab");
 	for(uint8_t jj=0;jj<10;jj++)
 	{
@@ -146,7 +139,7 @@ void backwardPass(int32_t id,uint8_t* data,uint8_t* labels,int32_t dataSize,gsl_
 	{
 		gsl_matrix_set_row(delta1,ii,temporaryRow);
 	}*/
-	loss=calculateLoss(probabilities,labels,id);
+	//double loss=calculateLoss(probabilities,labels,id);
 
 	gsl_blas_dgemm(CblasTrans, CblasNoTrans,rate,layers[0],realProbabilities,0.0, delta1);
 
