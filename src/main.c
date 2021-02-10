@@ -44,8 +44,6 @@ int main(int argc, char** argv)
 	gsl_matrix** layers=prepareLayers(numberOfLayers,numberOfLayersPoints);
 	gsl_matrix** weights=prepareWeights(numberOfLayers,numberOfLayersPoints);
 	
-	gsl_matrix* probabilities=gsl_matrix_alloc(1,numberOfLayersPoints[1]);
-		
 	//allocate memory for backward pass temporary matrices to reduce allocation/deallocation of memory	
 	gsl_matrix* delta1=gsl_matrix_alloc(numberOfLayersPoints[0],numberOfLayersPoints[1]);
 	gsl_matrix* error1=gsl_matrix_alloc(1,numberOfLayersPoints[1]);
@@ -67,14 +65,13 @@ int main(int argc, char** argv)
 		loss=0.0;
 		for(uint32_t ii=0;ii<count;ii++)
 		{
-			forwardPass(ii,trainingData,layers,weights,probabilities);
-			printProbabilities(trainingLabels,probabilities,ii);
-			backwardPass(ii,trainingData,trainingLabels,layers,weights,probabilities,rate,delta1,error1,realProbabilities);
-			lossSingle=calculateLoss(probabilities,trainingLabels,ii);
+			forwardPass(ii,trainingData,layers,weights);
+			printProbabilities(trainingLabels,layers[1],ii);
+			backwardPass(ii,trainingData,trainingLabels,layers,weights,rate,delta1,error1,realProbabilities);
+			lossSingle=calculateLoss(layers[1],trainingLabels,ii);
 			loss+=lossSingle;
-			correct+=testImage(ii,trainingLabels,probabilities);
+			correct+=testImage(ii,trainingLabels,layers[1]);
 			
-			lossSingle=calculateLoss(probabilities,trainingLabels,ii);
 			fprintf(stdout,"Loss function calculation %lf.\n\n",lossSingle);
 			
 			if((ii%(count/20))==0)
@@ -111,10 +108,10 @@ int main(int argc, char** argv)
 	fprintf(stderr,"Testing network with %u new digits:\n",count3);
 	for(uint32_t ii=0;ii<count3;ii++)
 	{
-		forwardPass(ii,testData,layers,weights,probabilities);
-		printProbabilities(testLabels,probabilities,ii);
-		correct+=testImage(ii,testLabels,probabilities);
-		lossSingle=calculateLoss(probabilities,testLabels,ii);
+		forwardPass(ii,testData,layers,weights);
+		printProbabilities(testLabels,layers[1],ii);
+		correct+=testImage(ii,testLabels,layers[1]);
+		lossSingle=calculateLoss(layers[1],testLabels,ii);
 		loss+=lossSingle;
 		if((ii%(count3/20))==0)
 			fprintf(stderr,"*");
@@ -135,7 +132,6 @@ int main(int argc, char** argv)
 	free(testData);
 	free(testLabels);
 	
-	gsl_matrix_free(probabilities);
 	gsl_matrix_free(realProbabilities);
 	gsl_matrix_free(delta1);
 	gsl_matrix_free(error1);
