@@ -8,6 +8,6 @@ void printDigit(uint8_t* trainingData,int32_t height,int32_t width,int32_t id,ui
 void printOther(uint8_t max,gsl_matrix* what,char* text);
 void printProbabilities(uint8_t* labels,gsl_matrix* probabilities,uint32_t id);
 void printLayers(gsl_matrix** layers,uint8_t numberOfLayers,uint32_t* numberOfLayersPoints);
-void printLayers2(gsl_matrix** layers,uint8_t numberOfLayers,uint32_t* numberOfLayersPoints);
+void printWeights(gsl_matrix** weights,uint8_t numberOfLayers);
 
 #endif

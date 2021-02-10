@@ -39,18 +39,19 @@ int main(int argc, char** argv)
 	double lossSingle=0.0;
 		
 	uint8_t	numberOfLayers=2;
-	uint32_t numberOfLayersPoints[]={width*height+1,10};//HIDDEN,10};
+	uint32_t numberOfLayersPoints[]={width*height+1,10};
 	
 	gsl_matrix** layers=prepareLayers(numberOfLayers,numberOfLayersPoints);
+	gsl_matrix** weights=prepareWeights(numberOfLayers,numberOfLayersPoints);
 	
 	gsl_matrix* probabilities=gsl_matrix_alloc(1,numberOfLayersPoints[1]);
 		
 	//allocate memory for backward pass temporary matrices to reduce allocation/deallocation of memory	
-	//gsl_matrix* delta1=gsl_matrix_alloc(numberOfLayersPoints[1],numberOfLayersPoints[2]);
-	//gsl_matrix* error1=gsl_matrix_alloc(1,numberOfLayersPoints[2]);
-	
 	gsl_matrix* delta1=gsl_matrix_alloc(numberOfLayersPoints[0],numberOfLayersPoints[1]);
 	gsl_matrix* error1=gsl_matrix_alloc(1,numberOfLayersPoints[1]);
+	
+	//gsl_matrix* delta2=gsl_matrix_alloc(numberOfLayersPoints[0],numberOfLayersPoints[1]);
+	//gsl_matrix* error2=gsl_matrix_alloc(1,numberOfLayersPoints[1]);
 	
 	gsl_matrix* realProbabilities=gsl_matrix_alloc(1,numberOfLayersPoints[1]);
 	
@@ -66,9 +67,9 @@ int main(int argc, char** argv)
 		loss=0.0;
 		for(uint32_t ii=0;ii<count;ii++)
 		{
-			forwardPass(ii,trainingData,numberOfLayersPoints[0]-1,layers,probabilities);
+			forwardPass(ii,trainingData,layers,weights,probabilities);
 			printProbabilities(trainingLabels,probabilities,ii);
-			backwardPass(ii,trainingData,trainingLabels,numberOfLayersPoints[0],layers,probabilities,rate,delta1,error1,realProbabilities);
+			backwardPass(ii,trainingData,trainingLabels,layers,weights,probabilities,rate,delta1,error1,realProbabilities);
 			lossSingle=calculateLoss(probabilities,trainingLabels,ii);
 			loss+=lossSingle;
 			correct+=testImage(ii,trainingLabels,probabilities);
@@ -110,7 +111,7 @@ int main(int argc, char** argv)
 	fprintf(stderr,"Testing network with %u new digits:\n",count3);
 	for(uint32_t ii=0;ii<count3;ii++)
 	{
-		forwardPass(ii,testData,numberOfLayersPoints[0]-1,layers,probabilities);
+		forwardPass(ii,testData,layers,weights,probabilities);
 		printProbabilities(testLabels,probabilities,ii);
 		correct+=testImage(ii,testLabels,probabilities);
 		lossSingle=calculateLoss(probabilities,testLabels,ii);
@@ -126,7 +127,7 @@ int main(int argc, char** argv)
 	fprintf(stdout,"\n");
 	
 	//show layers weights
-	printLayers2(layers,numberOfLayers,numberOfLayersPoints);
+	printWeights(weights,numberOfLayers);
 	
 	//Free memory
 	free(trainingData);
@@ -142,5 +143,6 @@ int main(int argc, char** argv)
 	//gsl_matrix_free(error2);
 	
 	unloadLayers(layers,numberOfLayers);
+	unloadWeights(weights,numberOfLayers);
 	return OK;
 }

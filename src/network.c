@@ -32,28 +32,26 @@ gsl_matrix** prepareLayers(uint8_t numberOfLayers,uint32_t*	numberOfLayersPoints
 	gsl_matrix** layers=(gsl_matrix**)malloc(sizeof(gsl_matrix*)*numberOfLayers);
 	for(uint8_t ii=0;ii<numberOfLayers;ii++)
 	{
-		layers[ii]=gsl_matrix_alloc(ii>0?numberOfLayersPoints[ii-1]:1,numberOfLayersPoints[ii]);
-		
-		if(ii==0)
+		layers[ii]=gsl_matrix_calloc(1,numberOfLayersPoints[ii]);
+	}
+	return layers;
+}
+
+gsl_matrix** prepareWeights(uint8_t numberOfLayers,uint32_t* numberOfLayersPoints)
+{
+	gsl_matrix** weights=(gsl_matrix**)malloc(sizeof(gsl_matrix*)*numberOfLayers);
+	for(uint8_t ii=0;ii<numberOfLayers-1;ii++)
+	{
+		weights[ii]=gsl_matrix_alloc(numberOfLayersPoints[ii],numberOfLayersPoints[ii+1]);
+		for(uint32_t jj=0;jj<numberOfLayersPoints[ii+1];jj++)
 		{
-			for(uint32_t jj=0;jj<numberOfLayersPoints[ii];jj++)
+			for(uint32_t kk=0;kk<numberOfLayersPoints[ii];kk++)
 			{
-				gsl_matrix_set(layers[ii],0,jj,randomUniform(-0.01,0.01));
-				
-			}
-		}
-		else
-		{
-			for(uint32_t jj=0;jj<numberOfLayersPoints[ii];jj++)
-			{
-				for(uint32_t kk=0;kk<numberOfLayersPoints[ii-1];kk++)
-				{
-					gsl_matrix_set(layers[ii],kk,jj,randomUniform(-0.01,0.01));
-				}
+				gsl_matrix_set(weights[ii],kk,jj,randomUniform(-0.01,0.01));
 			}
 		}
 	}
-	return layers;
+	return weights;
 }
 
 void unloadLayers(gsl_matrix** layers,uint8_t numberOfLayers)
@@ -63,6 +61,15 @@ void unloadLayers(gsl_matrix** layers,uint8_t numberOfLayers)
 		gsl_matrix_free(layers[ii]);
 	}
 	free(layers);
+}
+
+void unloadWeights(gsl_matrix** weights,uint8_t numberOfLayers)
+{
+	for(uint8_t ii=0;ii<numberOfLayers-1;ii++)
+	{
+		gsl_matrix_free(weights[ii]);
+	}
+	free(weights);
 }
 
 double calculateLoss(gsl_matrix* probabilities,uint8_t* labels, int32_t id)
@@ -84,20 +91,22 @@ double calculateLoss(gsl_matrix* probabilities,uint8_t* labels, int32_t id)
 	return loss;
 }
 
-void forwardPass(int32_t id,uint8_t* data, int32_t dataSize,gsl_matrix** layers,gsl_matrix* probabilities)
+void forwardPass(int32_t id,uint8_t* data,gsl_matrix** layers,gsl_matrix** weights,gsl_matrix* probabilities)
 {
-	int32_t offset=id*dataSize;
-	for(int ii=0;ii<dataSize;ii++)
+	int32_t offset=id*((layers[0]->size2)-1);
+	for(int ii=0;ii<((layers[0]->size2-1));ii++)
 	{
+		//fprintf(stderr,"layers[0](0,%u) out of (0,%lu)\n",ii,layers[0]->size2);
 		gsl_matrix_set(layers[0],0,ii,((double)data[ii+offset])/255.0);
 	}
-	gsl_matrix_set(layers[0],0,dataSize,1.0);	//bias
+	//fprintf(stderr,"Bias, layers[0](0,%lu) out of (0,%lu)\n",layers[0]->size2,layers[0]->size2);
+	gsl_matrix_set(layers[0],0,layers[0]->size2-1,1.0);	//bias
 	
 	//find what image is most similiar to
 	//multiply input layer by matrix
 	//fprintf(stderr,"layers[0]:(%lu,%lu), layers[1]:(%lu,%lu)=probabilities:(%lu,%lu)\n",layers[0]->size1,layers[0]->size2,layers[1]->size1,layers[1]->size2,probabilities->size1,probabilities->size2);
 	
-	gsl_blas_dgemm(CblasNoTrans, CblasNoTrans,1.0,layers[0],layers[1],0.0, probabilities);
+	
 	//fprintf(stderr,"layers[0]:(%lu,%lu), layers[1]:(%lu,%lu)=C:(%lu,%lu)\n",layers[0]->size1,layers[0]->size2,layers[1]->size1,layers[1]->size2,C->size1,C->size2);
 	
 	//Normalize
@@ -116,38 +125,36 @@ void forwardPass(int32_t id,uint8_t* data, int32_t dataSize,gsl_matrix** layers,
 		gsl_matrix_set(probabilities,0,jj,sigmoid(gsl_matrix_get(probabilities,0,jj)));
 	}*/
 	//printOther(10,probabilities,"Probab");
+	
+	
+	//Normalize
+	/*for(int ii=0;ii<HIDDEN;ii++)
+	{
+		gsl_matrix_set(C,0,ii,sigmoid(gsl_matrix_get(C,0,ii)));
+	}*/
+	
+	//fprintf(stderr,"layers[0]:(%lu,%lu), weights[0]:(%lu,%lu)=probabilities:(%lu,%lu)\n",layers[0]->size1,layers[0]->size2,weights[0]->size1,weights[0]->size2,probabilities->size1,probabilities->size2);
+	gsl_blas_dgemm(CblasNoTrans, CblasNoTrans,1.0,layers[0],weights[0],0.0, probabilities);
+	
 	softmax(probabilities,probabilities);
 	//printOther(10,probabilities,"nProbab");
 	
 }
 
-void backwardPass(int32_t id,uint8_t* data,uint8_t* labels,int32_t dataSize,gsl_matrix** layers,gsl_matrix* probabilities,double rate,gsl_matrix* delta1,gsl_matrix* error1,gsl_matrix* realProbabilities)
+void backwardPass(int32_t id,uint8_t* data,uint8_t* labels,gsl_matrix** layers,gsl_matrix** weights,gsl_matrix* probabilities,double rate,gsl_matrix* delta1,gsl_matrix* error1,gsl_matrix* realProbabilities)
 {
-	//double tmp=0.0;
-	
-	//printOther(10,probabilities,"Probab");
 	for(uint8_t jj=0;jj<10;jj++)
 	{
 		gsl_matrix_set(realProbabilities,0,jj,jj==labels[id]?-1.0:0.0);
 	}
 	gsl_matrix_add(realProbabilities,probabilities);
-	//printOther(10,realProbabilities,"rProbab");
-	//gsl_vector* temporaryRow=gsl_vector_alloc(10);
-	//gsl_matrix_get_row(temporaryRow,realProbabilities,0);
-	
-	/*for(uint16_t ii;ii<(dataSize+1);ii++)
-	{
-		gsl_matrix_set_row(delta1,ii,temporaryRow);
-	}*/
-	//double loss=calculateLoss(probabilities,labels,id);
-
+		
+	//fprintf(stderr,"layers[0]:(%lu,%lu), realProbabilities:(%lu,%lu)=delta1:(%lu,%lu)\n",layers[0]->size1,layers[0]->size2,realProbabilities->size1,realProbabilities->size2,delta1->size1,delta1->size2);
 	gsl_blas_dgemm(CblasTrans, CblasNoTrans,rate,layers[0],realProbabilities,0.0, delta1);
 
-	//gsl_matrix_mul_elements(delta1,layers[0]);
-	gsl_matrix_sub(layers[1], delta1);
-	//gsl_matrix_scale(delta1,-rate*loss);
+	//fprintf(stderr,"weights[0]:(%lu,%lu)-=delta1:(%lu,%lu)\n",weights[0]->size1,weights[0]->size2,delta1->size1,delta1->size2);
+	gsl_matrix_sub(weights[0], delta1);
 	
-	//printOther(10,probabilities,"Probab");
 	/*for(uint8_t jj=0;jj<10;jj++)
 	{
 		tmp=gsl_matrix_get(probabilities,0,jj);
