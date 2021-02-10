@@ -29,10 +29,10 @@ void printProbabilities(uint8_t* labels,gsl_matrix* probabilities,uint32_t id)
 	for(uint8_t jj=0;jj<10;jj++)
 	{
 		tmp=gsl_matrix_get(probabilities,0,jj);
-		fprintf(stdout,"%0.5lf,",tmp);
+		fprintf(stdout,"%0.4lf,",tmp);
 		sum+=tmp;
 	}
-	fprintf(stdout,"sum=%lf,\n",sum);
+	fprintf(stdout,"sum=%0.2lf, ",sum);
 }
 
 void printOther(uint8_t max,gsl_matrix* what,char* text)

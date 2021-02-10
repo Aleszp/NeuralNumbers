@@ -17,7 +17,7 @@
 int main(int argc, char** argv)
 {
 	srand (time (NULL));	//Prepare random number generator
-	double rate=0.1;	//Rate of error correction
+	double rate=0.5;	//Rate of error correction
 	if(argc!=5)
 	{
 		fprintf(stderr,"Wrong number of parameters.\n");
@@ -38,8 +38,8 @@ int main(int argc, char** argv)
 	double loss=0.0;
 	double lossSingle=0.0;
 		
-	uint8_t	numberOfLayers=2;
-	uint32_t numberOfLayersPoints[]={width*height+1,10};
+	uint8_t	numberOfLayers=3;
+	uint32_t numberOfLayersPoints[]={width*height+1,256,10};
 	
 	gsl_matrix** layers=prepareLayers(numberOfLayers,numberOfLayersPoints);
 	gsl_matrix** weights=prepareWeights(numberOfLayers,numberOfLayersPoints);
@@ -61,13 +61,15 @@ int main(int argc, char** argv)
 		for(uint32_t ii=0;ii<count;ii++)
 		{
 			forwardPass(ii,trainingData,layers,weights);
-			printProbabilities(trainingLabels,layers[1],ii);
+			printProbabilities(trainingLabels,layers[numberOfLayers-1],ii);
 			backwardPass(ii,trainingData,trainingLabels,layers,weights,rate,dWeights,dLayers);
-			lossSingle=calculateLoss(layers[1],trainingLabels,ii);
+			lossSingle=calculateLoss(layers[numberOfLayers-1],trainingLabels,ii);
 			loss+=lossSingle;
-			correct+=testImage(ii,trainingLabels,layers[1]);
+			correct+=testImage(ii,trainingLabels,layers[numberOfLayers-1]);
 			
-			fprintf(stdout,"Loss function calculation %lf.\n\n",lossSingle);
+			fprintf(stdout,"loss=%0.4lf.\n",lossSingle);
+			
+			//fprintf(stdout,"Loss function calculation %lf.\n",lossSingle);
 			
 			if((ii%(count/20))==0)
 				fprintf(stderr,"*");
@@ -75,7 +77,7 @@ int main(int argc, char** argv)
 		fprintf(stderr,"\n");
 		
 		loss/=(double)count;
-		
+		rate-=0.2;
 		fprintf(stderr,"Pass %u/%u finished. Correct %lf %% (%u out of %u). Average loss per digit: %lf.\n",jj+1,max,(100.0*(double)correct)/((double)count),correct,count,loss);
 		fprintf(stdout,"Pass %u/%u finished. Correct %lf %% (%u out of %u). Average loss per digit: %lf.\n",jj+1,max,(100.0*(double)correct)/((double)count),correct,count,loss);
 		fprintf(stdout,"\n");
@@ -104,10 +106,11 @@ int main(int argc, char** argv)
 	for(uint32_t ii=0;ii<count3;ii++)
 	{
 		forwardPass(ii,testData,layers,weights);
-		printProbabilities(testLabels,layers[1],ii);
-		correct+=testImage(ii,testLabels,layers[1]);
-		lossSingle=calculateLoss(layers[1],testLabels,ii);
+		printProbabilities(testLabels,layers[numberOfLayers-1],ii);
+		correct+=testImage(ii,testLabels,layers[numberOfLayers-1]);
+		lossSingle=calculateLoss(layers[numberOfLayers-1],testLabels,ii);
 		loss+=lossSingle;
+		fprintf(stdout,"loss=%0.4lf.\n",lossSingle);
 		if((ii%(count3/20))==0)
 			fprintf(stderr,"*");
 	}
@@ -126,10 +129,11 @@ int main(int argc, char** argv)
 	free(trainingLabels);
 	free(testData);
 	free(testLabels);
-		
+	
 	unloadLayers(layers,numberOfLayers);
 	unloadLayers(dLayers,numberOfLayers);
 	unloadWeights(weights,numberOfLayers);
 	unloadWeights(dWeights,numberOfLayers);
+	
 	return OK;
 }

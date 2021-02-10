@@ -93,113 +93,49 @@ double calculateLoss(gsl_matrix* probabilities,uint8_t* labels, int32_t id)
 
 void forwardPass(int32_t id,uint8_t* data,gsl_matrix** layers,gsl_matrix** weights)
 {
-	int32_t offset=id*((layers[0]->size2)-1);
-	for(int ii=0;ii<((layers[0]->size2-1));ii++)
+	uint currentLayer=0;
+	int32_t offset=id*((layers[currentLayer]->size2)-1);
+	for(int ii=0;ii<((layers[currentLayer]->size2-1));ii++)
 	{
 		//fprintf(stderr,"layers[0](0,%u) out of (0,%lu)\n",ii,layers[0]->size2);
-		gsl_matrix_set(layers[0],0,ii,((double)data[ii+offset])/255.0);
+		gsl_matrix_set(layers[currentLayer],0,ii,((double)data[ii+offset])/255.0);
 	}
 	//fprintf(stderr,"Bias, layers[0](0,%lu) out of (0,%lu)\n",layers[0]->size2,layers[0]->size2);
-	gsl_matrix_set(layers[0],0,layers[0]->size2-1,1.0);	//bias
+	gsl_matrix_set(layers[currentLayer],0,layers[currentLayer]->size2-1,1.0);	//bias
 	
-	//find what image is most similiar to
-	//multiply input layer by matrix
-	//fprintf(stderr,"layers[0]:(%lu,%lu), layers[1]:(%lu,%lu)=probabilities:(%lu,%lu)\n",layers[0]->size1,layers[0]->size2,layers[1]->size1,layers[1]->size2,probabilities->size1,probabilities->size2);
+	gsl_blas_dgemm(CblasNoTrans, CblasNoTrans,1.0,layers[currentLayer],weights[currentLayer],0.0, layers[currentLayer+1]);
+	currentLayer++;
+	sigmoid(layers[currentLayer],layers[currentLayer]);
 	
-	
-	//fprintf(stderr,"layers[0]:(%lu,%lu), layers[1]:(%lu,%lu)=C:(%lu,%lu)\n",layers[0]->size1,layers[0]->size2,layers[1]->size1,layers[1]->size2,C->size1,C->size2);
-	
-	//Normalize
-	//softmax(C,C);
-	/*for(int ii=0;ii<HIDDEN;ii++)
-	{
-		gsl_matrix_set(C,0,ii,sigmoid(gsl_matrix_get(C,0,ii)));
-	}*/
-	//multiply intermediate layer by matrix and return probabilities in output layer by matrix
-	//fprintf(stderr,"C:(%lu,%lu), layers[2]:(%lu,%lu)=probabilities:(%lu,%lu)\n",C->size1,C->size2,layers[2]->size1,layers[2]->size2,probabilities->size1,probabilities->size2);
-	//gsl_blas_dgemm(CblasNoTrans, CblasNoTrans,1.0, C,layers[2],0.0, probabilities);
-	
-	//Normalize
-	/*for(int jj=0;jj<10;jj++)
-	{
-		gsl_matrix_set(probabilities,0,jj,sigmoid(gsl_matrix_get(probabilities,0,jj)));
-	}*/
-	//printOther(10,probabilities,"Probab");
-	
-	
-	//Normalize
-	/*for(int ii=0;ii<HIDDEN;ii++)
-	{
-		gsl_matrix_set(C,0,ii,sigmoid(gsl_matrix_get(C,0,ii)));
-	}*/
-	
-	//fprintf(stderr,"layers[0]:(%lu,%lu), weights[0]:(%lu,%lu)=probabilities:(%lu,%lu)\n",layers[0]->size1,layers[0]->size2,weights[0]->size1,weights[0]->size2,probabilities->size1,probabilities->size2);
-	gsl_blas_dgemm(CblasNoTrans, CblasNoTrans,1.0,layers[0],weights[0],0.0, layers[1]);
-	
-	softmax(layers[1],layers[1]);
-	//printOther(10,probabilities,"nProbab");
-	
+	gsl_blas_dgemm(CblasNoTrans, CblasNoTrans,1.0,layers[currentLayer],weights[currentLayer],0.0, layers[currentLayer+1]);
+	currentLayer++;
+	softmax(layers[currentLayer],layers[currentLayer]);
 }
 
 void backwardPass(int32_t id,uint8_t* data,uint8_t* labels,gsl_matrix** layers,gsl_matrix** weights,double rate,gsl_matrix** dWeights,gsl_matrix** dLayers)
 {
+	uint currentLayer=2;
 	for(uint8_t jj=0;jj<10;jj++)
 	{
-		gsl_matrix_set(dLayers[1],0,jj,jj==labels[id]?-1.0:0.0);
+		gsl_matrix_set(dLayers[currentLayer],0,jj,jj==labels[id]?-1.0:0.0);
 	}
 	//fprintf(stderr,"dLayers[1]:(%lu,%lu)+=layers[1]:(%lu,%lu)\n",dLayers[1]->size1,dLayers[1]->size2,layers[1]->size1,layers[1]->size2);
-	gsl_matrix_add(dLayers[1],layers[1]);
+	gsl_matrix_add(dLayers[currentLayer],layers[currentLayer]);
 		
+	currentLayer--;
+	deSigmoid(layers[currentLayer],layers[currentLayer]);
 	//fprintf(stderr,"layers[0]:(%lu,%lu), dLayers[1]:(%lu,%lu)=dWeights[0]:(%lu,%lu)\n",layers[0]->size1,layers[0]->size2,dLayers[1]->size1,dLayers[1]->size2,dWeights[0]->size1,dWeights[0]->size2);
-	gsl_blas_dgemm(CblasTrans, CblasNoTrans,rate,layers[0],dLayers[1],0.0, dWeights[0]);
+	gsl_blas_dgemm(CblasTrans,CblasNoTrans,rate,layers[currentLayer],dLayers[currentLayer+1],0.0, dWeights[currentLayer]);
 
-	//fprintf(stderr,"weights[0]:(%lu,%lu)-=delta1:(%lu,%lu)\n",weights[0]->size1,weights[0]->size2,delta1->size1,delta1->size2);
-	gsl_matrix_sub(weights[0], dWeights[0]);
+	//fprintf(stderr,"weights[1]:(%lu,%lu)-=dWeights[1]:(%lu,%lu)\n",weights[1]->size1,weights[1]->size2,dWeights[1]->size1,dWeights[1]->size2);
+	gsl_matrix_sub(weights[currentLayer],dWeights[currentLayer]);
 	
-	/*for(uint8_t jj=0;jj<10;jj++)
-	{
-		tmp=gsl_matrix_get(probabilities,0,jj);
-		//loss-=(((labels[id]==jj)?1.0:0.0)*log(tmp));
-		
-		//gsl_matrix_set(error2,0,jj,-(((labels[id]==jj)?1.0:-1.0/9.0)*log(tmp)));
-		//gsl_matrix_set(error2,0,jj,labels[id]==jj?(tmp-1.0):(tmp));
-		gsl_matrix_set(delta1,0,jj,deSigmoid(tmp));
-	}*/
-	//deSoftmax(probabilities,delta1);
-	//printOther(10,probabilities,"dProbab");
-	//printOther(10,delta2,"Delta2");
-	//printOther(10,error2,"Error2");
-	//gsl_matrix_mul_elements(delta2, error2);
-	//gsl_matrix_scale(delta1,-loss);
-	//printOther(10,delta2,"Delta2");	
-	
-	//fprintf(stderr,"C:(%lu,%lu)*delta2:(%lu,%lu)=A:(%lu,%lu)\n",C->size1,C->size2,delta2->size1,delta2->size2,A->size1,A->size2);
-	//gsl_blas_dgemm(CblasTrans, CblasNoTrans,rate,layers[0],delta1,0.0, A);
-	
-	//fprintf(stderr,"delta2:(%lu,%lu)*layers[2]:(%lu,%lu)=error1:(%lu,%lu)\n",delta2->size1,delta2->size2,layers[2]->size1,layers[2]->size2,error1->size1,error1->size2);
-	//gsl_blas_dgemm(CblasNoTrans, CblasTrans,1.0,delta2,layers[2],0.0,error1);
-		
-	/*for(uint8_t jj=0;jj<10;jj++)
-	{
-		tmp=gsl_matrix_get(C,0,jj);
-		gsl_matrix_set(delta1,0,jj,deSigmoid(tmp));
-	}*/
-	//deSoftmax(C,delta1);
-	//fprintf(stderr,"delta1:(%lu,%lu)*error1:(%lu,%lu)\n",delta1->size1,delta1->size2,error1->size1,error1->size2);
-	//gsl_matrix_mul_elements(delta1, error1);
-	
-	//gsl_matrix* B=gsl_matrix_alloc(dataSize,HIDDEN);
-	//fprintf(stderr,"layers[0]:(%lu,%lu)*delta1:(%lu,%lu)=B:(%lu,%lu)\n",layers[0]->size1,layers[0]->size2,delta1->size1,delta1->size2,B->size1,B->size2);
-	//gsl_blas_dgemm(CblasTrans, CblasNoTrans,rate,layers[0],delta1,0.0, B);
-	
-	//fprintf(stderr,"layer[1]:(%lu,%lu)+B:(%lu,%lu)\n",layers[1]->size1,layers[1]->size2,B->size1,B->size2);
-	//gsl_matrix_scale(B,rate);
-	//gsl_matrix_add(layers[1], B);
-	
-	//fprintf(stderr,"layer[2]:(%lu,%lu)+A:(%lu,%lu)\n",layers[2]->size1,layers[2]->size2,A->size1,A->size2);
-	//gsl_matrix_scale(A,rate);
-	//gsl_matrix_add(layers[1], A);
-	//gsl_vector_free(temporaryRow);
+	//fprintf(stderr,"dLayers[2](%lu,%lu) x weights[1](%lu,%lu)=dLayers[1](%lu,%lu)=\n",dLayers[2]->size1,dLayers[2]->size2,weights[1]->size1,weights[1]->size2,dLayers[1]->size1,dLayers[1]->size2);
+	gsl_blas_dgemm(CblasNoTrans,CblasTrans,1.0,dLayers[currentLayer+1],weights[currentLayer],0.0, dLayers[currentLayer]);
+	currentLayer--;
+	gsl_blas_dgemm(CblasTrans,CblasNoTrans,rate,layers[currentLayer],dLayers[currentLayer+1],0.0, dWeights[currentLayer]);
+
+	gsl_matrix_sub(weights[currentLayer], dWeights[currentLayer]);
 }
 
 void softmax(gsl_matrix* in,gsl_matrix* out)
@@ -244,9 +180,23 @@ void deSoftmax(gsl_matrix* in,gsl_matrix* out)
 		gsl_matrix_scale(out,1.0/sum);
 		gsl_matrix_scale(tmpMatrix,1.0/(sum*sum));
 		gsl_matrix_add(out,tmpMatrix);
-		//fprintf(stderr,"dSoftmax: %u/%lu,tmp=%lf,sum=%lf\n",ii,in->size2,tmp,sum);
 	}
-	//gsl_matrix_scale(out,1.0/sum);
 	gsl_matrix_free(tmpMatrix);
 }
 
+void sigmoid(gsl_matrix* in,gsl_matrix* out)
+{
+	for(int ii=0;ii<in->size2;ii++)
+	{
+		gsl_matrix_set(out,0,ii,_sigmoid(gsl_matrix_get(in,0,ii)));
+	}
+}
+void deSigmoid(gsl_matrix* in,gsl_matrix* out)			//sigmoid^-1
+{
+	for(int ii=0;ii<in->size2;ii++)
+	{
+		gsl_matrix_set(out,0,ii,_deSigmoid(gsl_matrix_get(in,0,ii)));
+	}
+}
+
+	
