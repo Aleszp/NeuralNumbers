@@ -19,7 +19,7 @@ void backwardPass(int32_t id,uint8_t* data,uint8_t* labels,int32_t dataSize,gsl_
 
 inline double randomUniform(double from, double to){return from+(to-from)*((double) rand () / RAND_MAX);}
 inline double sigmoid(double x){return 1.0/(1.0+exp(-x));}	//sigmoid
-inline double deSigmoid(double x){return x*(1.0-x);}	//sigmoid^-1
+inline double deSigmoid(double x){return x*(1.0-x);}		//sigmoid^-1
 
 void softmax(gsl_matrix* in,gsl_matrix* out);
 void deSoftmax(gsl_matrix* in,gsl_matrix* out);//softmax^-1
