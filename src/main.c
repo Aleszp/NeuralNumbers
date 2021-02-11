@@ -1,7 +1,22 @@
 /*
- * AI implementation of handwritten digit recognition written in C with GSL_BLAS.
+ *   AI implementation of handwritten digit recognition written in C with GSL_BLAS.
  * 
- * Author: Aleksander Szpakiewicz-Szatan
+ *   Author: Aleksander Szpakiewicz-Szatan
+ * 
+ *   This program is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation, either version 3 of the License, or
+ *   (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * 
+ *   Contact: aleksander.szpakiewicz-szatan.dokt(a)pw.edu.pl
  */
 
 #include <stdio.h>
@@ -16,8 +31,9 @@
 
 int main(int argc, char** argv)
 {
+	gnuNotice();
 	srand (time (NULL));	//Prepare random number generator
-	double rate=0.05;		//Rate of error correction
+	double rate=0.2;		//Rate of error correction
 	if(argc!=5)
 	{
 		fprintf(stderr,"Wrong number of parameters.\n");
@@ -39,7 +55,7 @@ int main(int argc, char** argv)
 	double lossSingle=0.0;
 		
 	uint8_t	numberOfLayers=3;
-	uint32_t numberOfLayersPoints[]={width*height,256,10};
+	uint32_t numberOfLayersPoints[]={width*height,width*height/2,10};
 	uint8_t	activations[]={SIGMOID,SOFTMAX};
 	
 	gsl_matrix** layers=prepareLayers(numberOfLayers,numberOfLayersPoints);
@@ -93,7 +109,7 @@ int main(int argc, char** argv)
 		fprintf(stderr,"\n");
 		
 		loss/=(double)count;
-		//rate-=0.05;
+		rate/=2.0;
 		fprintf(stderr,"Pass %u/%u finished. Correct %lf %% (%u out of %u). Average loss per digit: %lf.\n",jj+1,max,(100.0*(double)correct)/((double)(count)),correct,count,loss);
 		fprintf(stdout,"Pass %u/%u finished. Correct %lf %% (%u out of %u). Average loss per digit: %lf.\n",jj+1,max,(100.0*(double)correct)/((double)(count)),correct,count,loss);
 		fprintf(stdout,"\n");
