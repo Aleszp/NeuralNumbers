@@ -1,7 +1,7 @@
 #
 #   AI implementation of handwritten digit recognition written in C with GSL_BLAS.
 # 
-#   Author: Aleksander Szpakiewicz-Szatan
+#   Author: Aleksander Szpakiewicz-Szatan (c) 2021
 # 
 #   This program is free software: you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by

@@ -1,7 +1,7 @@
 /*
  *   AI implementation of handwritten digit recognition written in C with GSL_BLAS.
  * 
- *   Author: Aleksander Szpakiewicz-Szatan
+ *   Author: Aleksander Szpakiewicz-Szatan (c) 2021
  * 
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -26,6 +26,8 @@
 #include <gsl/gsl_blas.h>
 
 void printDigit(uint8_t* trainingData,int32_t height,int32_t width,int32_t id,uint8_t digit);
+void exportDigit(uint8_t* trainingData,int32_t height,int32_t width,int32_t id,uint8_t digit)
+;
 void printOther(uint8_t max,gsl_matrix* what,char* text);
 void printProbabilities(uint8_t* labels,gsl_matrix* probabilities,uint32_t id,int detected);
 void printLayers(gsl_matrix** layers,uint8_t numberOfLayers,uint32_t* numberOfLayersPoints);

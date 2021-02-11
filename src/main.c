@@ -1,7 +1,7 @@
 /*
  *   AI implementation of handwritten digit recognition written in C with GSL_BLAS.
  * 
- *   Author: Aleksander Szpakiewicz-Szatan
+ *   Author: Aleksander Szpakiewicz-Szatan (c) 2021
  * 
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -33,7 +33,7 @@ int main(int argc, char** argv)
 {
 	gnuNotice();
 	srand (time (NULL));	//Prepare random number generator
-	double rate=0.2;		//Rate of error correction
+	double rate=0.8;		//Rate of error correction
 	if(argc!=5)
 	{
 		fprintf(stderr,"Wrong number of parameters.\n");
@@ -49,13 +49,14 @@ int main(int argc, char** argv)
 	}
 	//Test if image was loaded correctrly, display with one-bit resolution in console
 	//int32_t ii=1;	//id of tested image [0;count)
-	//printDigit(trainingData,height,width,ii,trainingLabels[ii]);
-	
+	//printDigit(trainingData,height,width,0,trainingLabels[0]);
+	//exportDigit(trainingData,height,width,0,trainingLabels[0]);
+	//return OK;
 	double loss=0.0;
 	double lossSingle=0.0;
 		
 	uint8_t	numberOfLayers=3;
-	uint32_t numberOfLayersPoints[]={width*height,width*height/2,10};
+	uint32_t numberOfLayersPoints[]={width*height,64,10};
 	uint8_t	activations[]={SIGMOID,SOFTMAX};
 	
 	gsl_matrix** layers=prepareLayers(numberOfLayers,numberOfLayersPoints);
@@ -133,6 +134,81 @@ int main(int argc, char** argv)
 	}
 	
 	//test network
+	loss=0.0;
+	fprintf(stdout,"Testing network with %u new digits:\n",count3);
+	fprintf(stderr,"Testing network with %u new digits:\n",count3);
+	for(uint32_t ii=0;ii<count3;ii++)
+	{
+		forwardPass(ii,testData,layers,weights,biases,numberOfLayers,activations);
+		
+		isCorrect=testImage(ii,testLabels,layers[numberOfLayers-1]);
+		printProbabilities(testLabels,layers[numberOfLayers-1],ii,isCorrect);
+			
+		lossSingle=calculateLoss(layers[numberOfLayers-1],testLabels,ii);
+		loss+=lossSingle;
+		fprintf(stdout,"loss=%0.4lf.\n",lossSingle);
+		if(isCorrect!=-1)
+		{
+			printDigit(testData,height,width,ii,testLabels[ii]);
+		}
+		else
+		{
+			correct++;
+		}
+		if((ii%(count3/20))==0)
+			fprintf(stderr,"*");
+	}
+	fprintf(stderr,"\n");
+	loss/=(double)count3;
+		
+	fprintf(stderr,"Test digits compared. Correct %lf %% (%u out of %u). Average loss per digit: %lf.\n",(100.0*(double)correct)/((double)count3),correct,count3,loss);
+	fprintf(stdout,"Test digits compared. Correct %lf %% (%u out of %u). Average loss per digit: %lf.\n",(100.0*(double)correct)/((double)count3),correct,count3,loss);
+	fprintf(stdout,"\n");
+	
+	for(uint8_t	jj=0;jj<1;jj++)
+	{
+		correct=0;
+		loss=0.0;
+		//count*=max;
+		for(uint32_t ii=0;ii<count3;ii++)
+		{
+			//for(uint8_t	jj=0;jj<max;jj++)
+			{
+				forwardPass(ii,testData,layers,weights,biases,numberOfLayers,activations);
+				lossSingle=calculateLoss(layers[numberOfLayers-1],trainingLabels,ii);
+				loss+=lossSingle;
+				isCorrect=testImage(ii,testLabels,layers[numberOfLayers-1]);
+				printProbabilities(testLabels,layers[numberOfLayers-1],ii,isCorrect);
+				fprintf(stdout,"loss=%0.4lf.\n",lossSingle);
+				
+				backwardPass(ii,testData,testLabels,layers,weights,biases,rate,dWeights,dLayers,dBiases,numberOfLayers,activations);
+				
+				if(isCorrect!=-1)
+				{
+					//printDigit(trainingData,height,width,ii/3,trainingLabels[ii]);
+				}
+				else
+				{
+					correct++;
+				}
+			}
+			//fprintf(stdout,"Loss function calculation %lf.\n",lossSingle);
+			
+			if((ii%(count/20))==0)
+				fprintf(stderr,"*");
+		}
+		fprintf(stderr,"\n");
+		
+		loss/=(double)count;
+		rate/=2.0;
+		fprintf(stderr,"Pass %u/%u finished. Correct %lf %% (%u out of %u). Average loss per digit: %lf.\n",jj+1,max,(100.0*(double)correct)/((double)(count3)),correct,count3,loss);
+		fprintf(stdout,"Pass %u/%u finished. Correct %lf %% (%u out of %u). Average loss per digit: %lf.\n",jj+1,max,(100.0*(double)correct)/((double)(count3)),correct,count3,loss);
+		fprintf(stdout,"\n");
+		//break;
+	}
+	
+	//test network
+	correct=0;
 	loss=0.0;
 	fprintf(stdout,"Testing network with %u new digits:\n",count3);
 	fprintf(stderr,"Testing network with %u new digits:\n",count3);

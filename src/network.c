@@ -1,7 +1,7 @@
 /*
  *   AI implementation of handwritten digit recognition written in C with GSL_BLAS.
  * 
- *   Author: Aleksander Szpakiewicz-Szatan
+ *   Author: Aleksander Szpakiewicz-Szatan (c) 2021
  * 
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -126,11 +126,6 @@ void forwardPass(int32_t id,uint8_t* data,gsl_matrix** layers,gsl_matrix** weigh
 	gsl_matrix_add(layers[currentLayer],biases[currentLayer]);
 	activate(layers[currentLayer],layers[currentLayer],activations[currentLayer-1]);
 	
-	/*gsl_blas_dgemm(CblasNoTrans, CblasNoTrans,1.0,layers[currentLayer],weights[currentLayer],0.0, layers[currentLayer+1]);	
-	currentLayer++;
-	gsl_matrix_add(layers[currentLayer],biases[currentLayer]);
-	activate(layers[currentLayer],layers[currentLayer],activations[currentLayer-1]);*/
-	
 	gsl_blas_dgemm(CblasNoTrans, CblasNoTrans,1.0,layers[currentLayer],weights[currentLayer],0.0, layers[currentLayer+1]);
 	currentLayer++;
 	gsl_matrix_add(layers[currentLayer],biases[currentLayer]);
@@ -146,23 +141,12 @@ void backwardPass(int32_t id,uint8_t* data,uint8_t* labels,gsl_matrix** layers,g
 	}
 	//fprintf(stderr,"dLayers[1]:(%lu,%lu)+=layers[1]:(%lu,%lu)\n",dLayers[1]->size1,dLayers[1]->size2,layers[1]->size1,layers[1]->size2);
 	
-	//deActivate(layers[currentLayer],layers[currentLayer],activations[currentLayer-1]);
 	gsl_matrix_add(dLayers[currentLayer],layers[currentLayer]);
 	
 	gsl_matrix_scale(dLayers[currentLayer],rate);
 	gsl_matrix_sub(biases[currentLayer],dLayers[currentLayer]);
 	currentLayer--;
 	gsl_blas_dgemm(CblasTrans,CblasNoTrans,1.0,layers[currentLayer],dLayers[currentLayer+1],0.0, dWeights[currentLayer]);
-	
-	//fprintf(stderr,"dLayers[%u](%lu,%lu) x weights[%u](%lu,%lu)=dLayers[%u](%lu,%lu)\n",currentLayer+1,layers[currentLayer+1]->size1,layers[currentLayer+1]->size2,currentLayer,weights[currentLayer]->size1,weights[currentLayer]->size2,currentLayer,dLayers[currentLayer]->size1,dLayers[currentLayer]->size2);
-	/*deActivate(layers[currentLayer+1],layers[currentLayer+1],activations[currentLayer]);
-	gsl_blas_dgemm(CblasNoTrans,CblasTrans,1.0,dLayers[currentLayer+1],weights[currentLayer],0.0, dLayers[currentLayer]);
-	gsl_matrix_sub(weights[currentLayer],dWeights[currentLayer]);
-	
-	gsl_matrix_scale(dLayers[currentLayer],rate);
-	gsl_matrix_sub(biases[currentLayer],dLayers[currentLayer]);
-	currentLayer--;
-	gsl_blas_dgemm(CblasTrans,CblasNoTrans,1.0,layers[currentLayer],dLayers[currentLayer+1],0.0, dWeights[currentLayer]);*/
 	
 	//fprintf(stderr,"dLayers[%u](%lu,%lu) x weights[%u](%lu,%lu)=dLayers[%u](%lu,%lu)\n",currentLayer+1,layers[currentLayer+1]->size1,layers[currentLayer+1]->size2,currentLayer,weights[currentLayer]->size1,weights[currentLayer]->size2,currentLayer,dLayers[currentLayer]->size1,dLayers[currentLayer]->size2);
 	deActivate(layers[currentLayer+1],layers[currentLayer+1],activations[currentLayer]);
