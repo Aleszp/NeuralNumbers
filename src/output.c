@@ -146,6 +146,6 @@ void printBiases(gsl_matrix** biases,uint8_t numberOfLayers)
 
 void gnuNotice()
 {
-	fprintf(stdout,"NeuralNumbers  Copyright (C) 2021  Aleksander Szpakiewicz-Szatan\nThis program comes with ABSOLUTELY NO WARRANTY.\nThis is free software, and you are welcome to redistribute it\nunder certain conditions.");
-	fprintf(stdout,"For more information please read LICENSE file supplied or read <https://www.gnu.org/licenses/>\n\n");
+	fprintf(stdout,"NeuralNumbers  Copyright (C) 2021  Aleksander Szpakiewicz-Szatan\nThis program comes with ABSOLUTELY NO WARRANTY.\nThis is free software, and you are welcome to redistribute it\nunder certain conditions.\n");
+	fprintf(stdout,"For more information please read LICENSE file supplied\nor read <https://www.gnu.org/licenses/gpl-3.0.html>\n\n");
 }
