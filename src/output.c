@@ -25,7 +25,7 @@ void printProbabilities(uint8_t* labels,gsl_matrix* probabilities,uint32_t id,in
 	//fprintf(stderr,"Probabilities(%lu,%lu):\n",probabilities->size1,probabilities->size2);
 	double sum=0.0;
 	double tmp=0.0;
-	fprintf(stdout,"Label: %u, Detected: %i, prob: ",labels[id],detected==-1?labels[id]:detected);
+	fprintf(stdout,"Label: %u, Detec: %i, prob: ",labels[id],detected==-1?labels[id]:detected);
 	for(uint8_t jj=0;jj<10;jj++)
 	{
 		tmp=gsl_matrix_get(probabilities,0,jj);

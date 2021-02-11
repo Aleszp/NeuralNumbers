@@ -17,7 +17,7 @@
 int main(int argc, char** argv)
 {
 	srand (time (NULL));	//Prepare random number generator
-	double rate=0.01;		//Rate of error correction
+	double rate=0.05;		//Rate of error correction
 	if(argc!=5)
 	{
 		fprintf(stderr,"Wrong number of parameters.\n");
@@ -38,8 +38,9 @@ int main(int argc, char** argv)
 	double loss=0.0;
 	double lossSingle=0.0;
 		
-	uint8_t	numberOfLayers=2;
-	uint32_t numberOfLayersPoints[]={width*height,10};
+	uint8_t	numberOfLayers=3;
+	uint32_t numberOfLayersPoints[]={width*height,256,10};
+	uint8_t	activations[]={SIGMOID,SOFTMAX};
 	
 	gsl_matrix** layers=prepareLayers(numberOfLayers,numberOfLayersPoints);
 	gsl_matrix** biases=prepareLayers(numberOfLayers,numberOfLayersPoints);
@@ -61,24 +62,23 @@ int main(int argc, char** argv)
 	{
 		correct=0;
 		loss=0.0;
+		//count*=max;
 		for(uint32_t ii=0;ii<count;ii++)
 		{
 			//for(uint8_t	jj=0;jj<max;jj++)
 			{
-				forwardPass(ii,trainingData,layers,weights,biases,numberOfLayers);
-				
-				backwardPass(ii,trainingData,trainingLabels,layers,weights,biases,rate,dWeights,dLayers,dBiases,numberOfLayers);
+				forwardPass(ii,trainingData,layers,weights,biases,numberOfLayers,activations);
 				lossSingle=calculateLoss(layers[numberOfLayers-1],trainingLabels,ii);
 				loss+=lossSingle;
 				isCorrect=testImage(ii,trainingLabels,layers[numberOfLayers-1]);
-				
-				
 				printProbabilities(trainingLabels,layers[numberOfLayers-1],ii,isCorrect);
 				fprintf(stdout,"loss=%0.4lf.\n",lossSingle);
 				
+				backwardPass(ii,trainingData,trainingLabels,layers,weights,biases,rate,dWeights,dLayers,dBiases,numberOfLayers,activations);
+				
 				if(isCorrect!=-1)
 				{
-					printDigit(trainingData,height,width,ii,trainingLabels[ii]);
+					//printDigit(trainingData,height,width,ii/3,trainingLabels[ii]);
 				}
 				else
 				{
@@ -93,7 +93,7 @@ int main(int argc, char** argv)
 		fprintf(stderr,"\n");
 		
 		loss/=(double)count;
-		//rate-=0.2;
+		//rate-=0.05;
 		fprintf(stderr,"Pass %u/%u finished. Correct %lf %% (%u out of %u). Average loss per digit: %lf.\n",jj+1,max,(100.0*(double)correct)/((double)(count)),correct,count,loss);
 		fprintf(stdout,"Pass %u/%u finished. Correct %lf %% (%u out of %u). Average loss per digit: %lf.\n",jj+1,max,(100.0*(double)correct)/((double)(count)),correct,count,loss);
 		fprintf(stdout,"\n");
@@ -122,7 +122,7 @@ int main(int argc, char** argv)
 	fprintf(stderr,"Testing network with %u new digits:\n",count3);
 	for(uint32_t ii=0;ii<count3;ii++)
 	{
-		forwardPass(ii,testData,layers,weights,biases,numberOfLayers);
+		forwardPass(ii,testData,layers,weights,biases,numberOfLayers,activations);
 		
 		isCorrect=testImage(ii,testLabels,layers[numberOfLayers-1]);
 		printProbabilities(testLabels,layers[numberOfLayers-1],ii,isCorrect);
@@ -132,7 +132,7 @@ int main(int argc, char** argv)
 		fprintf(stdout,"loss=%0.4lf.\n",lossSingle);
 		if(isCorrect!=-1)
 		{
-			printDigit(trainingData,height,width,ii,trainingLabels[ii]);
+			printDigit(testData,height,width,ii,testLabels[ii]);
 		}
 		else
 		{

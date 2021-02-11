@@ -5,8 +5,8 @@ BINDIR=./bin/
 
 CXX=gcc
 
-CFLAGS=-pedantic -Wall -std=gnu99 -O3 -I$(INCLUDEDIR) 
-LIBS=-lm -lgsl -lgslcblas
+CFLAGS=-pedantic -Wall -std=gnu99 -O3 -I$(INCLUDEDIR) -DHAVE_INLINE
+LIBS=-lm -lgsl  -lgslcblas
 
 DEPS = input.h outout.h network.h
 SRCS = main.c input.c output.c network.c

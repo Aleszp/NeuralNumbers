@@ -91,7 +91,7 @@ double calculateLoss(gsl_matrix* probabilities,uint8_t* labels, int32_t id)
 	return loss;
 }
 
-void forwardPass(int32_t id,uint8_t* data,gsl_matrix** layers,gsl_matrix** weights,gsl_matrix** biases,uint8_t numberOfLayers)
+void forwardPass(int32_t id,uint8_t* data,gsl_matrix** layers,gsl_matrix** weights,gsl_matrix** biases,uint8_t numberOfLayers,uint8_t* activations)
 {
 	uint currentLayer=0;
 	int32_t offset=id*((layers[currentLayer]->size2));
@@ -100,47 +100,60 @@ void forwardPass(int32_t id,uint8_t* data,gsl_matrix** layers,gsl_matrix** weigh
 		//fprintf(stderr,"layers[0](0,%u) out of (0,%lu)\n",ii,layers[0]->size2);
 		gsl_matrix_set(layers[currentLayer],0,ii,((double)data[ii+offset])/255.0);
 	}
-	//fprintf(stderr,"Bias, layers[0](0,%lu) out of (0,%lu)\n",layers[0]->size2,layers[0]->size2);
-	//gsl_matrix_set(layers[currentLayer],0,layers[currentLayer]->size2-1,1.0);	//bias
+	gsl_blas_dgemm(CblasNoTrans, CblasNoTrans,1.0,layers[currentLayer],weights[currentLayer],0.0, layers[currentLayer+1]);	
+	currentLayer++;
+	gsl_matrix_add(layers[currentLayer],biases[currentLayer]);
+	activate(layers[currentLayer],layers[currentLayer],activations[currentLayer-1]);
 	
-	//gsl_blas_dgemm(CblasNoTrans, CblasNoTrans,1.0,layers[currentLayer],weights[currentLayer],0.0, layers[currentLayer+1]);
-	//currentLayer++;
-	//sigmoid(layers[currentLayer],layers[currentLayer]);
+	/*gsl_blas_dgemm(CblasNoTrans, CblasNoTrans,1.0,layers[currentLayer],weights[currentLayer],0.0, layers[currentLayer+1]);	
+	currentLayer++;
+	gsl_matrix_add(layers[currentLayer],biases[currentLayer]);
+	activate(layers[currentLayer],layers[currentLayer],activations[currentLayer-1]);*/
 	
 	gsl_blas_dgemm(CblasNoTrans, CblasNoTrans,1.0,layers[currentLayer],weights[currentLayer],0.0, layers[currentLayer+1]);
 	currentLayer++;
 	gsl_matrix_add(layers[currentLayer],biases[currentLayer]);
-	softmax(layers[currentLayer],layers[currentLayer]);
+	activate(layers[currentLayer],layers[currentLayer],activations[currentLayer-1]);
 }
 
-void backwardPass(int32_t id,uint8_t* data,uint8_t* labels,gsl_matrix** layers,gsl_matrix** weights,gsl_matrix** biases,double rate,gsl_matrix** dWeights,gsl_matrix** dLayers,gsl_matrix** dBiases,uint8_t numberOfLayers)
+void backwardPass(int32_t id,uint8_t* data,uint8_t* labels,gsl_matrix** layers,gsl_matrix** weights,gsl_matrix** biases,double rate,gsl_matrix** dWeights,gsl_matrix** dLayers,gsl_matrix** dBiases,uint8_t numberOfLayers,uint8_t* activations)
 {
-	uint currentLayer=numberOfLayers-1;
+	uint8_t currentLayer=numberOfLayers-1;
 	for(uint8_t jj=0;jj<10;jj++)
 	{
 		gsl_matrix_set(dLayers[currentLayer],0,jj,jj==labels[id]?-1.0:0.0);
 	}
 	//fprintf(stderr,"dLayers[1]:(%lu,%lu)+=layers[1]:(%lu,%lu)\n",dLayers[1]->size1,dLayers[1]->size2,layers[1]->size1,layers[1]->size2);
+	
+	//deActivate(layers[currentLayer],layers[currentLayer],activations[currentLayer-1]);
 	gsl_matrix_add(dLayers[currentLayer],layers[currentLayer]);
-		
-	
-	//deSigmoid(layers[currentLayer],layers[currentLayer]);
-	//fprintf(stderr,"layers[0]:(%lu,%lu), dLayers[1]:(%lu,%lu)=dWeights[0]:(%lu,%lu)\n",layers[0]->size1,layers[0]->size2,dLayers[1]->size1,dLayers[1]->size2,dWeights[0]->size1,dWeights[0]->size2);
-	//gsl_blas_dgemm(CblasTrans,CblasNoTrans,rate,layers[currentLayer],dLayers[currentLayer+1],0.0, dWeights[currentLayer]);
-
-	//fprintf(stderr,"weights[1]:(%lu,%lu)-=dWeights[1]:(%lu,%lu)\n",weights[1]->size1,weights[1]->size2,dWeights[1]->size1,dWeights[1]->size2);
-	//gsl_matrix_sub(weights[currentLayer],dWeights[currentLayer]);
-	
-	//fprintf(stderr,"dLayers[2](%lu,%lu) x weights[1](%lu,%lu)=dLayers[1](%lu,%lu)=\n",dLayers[2]->size1,dLayers[2]->size2,weights[1]->size1,weights[1]->size2,dLayers[1]->size1,dLayers[1]->size2);
-	//gsl_blas_dgemm(CblasNoTrans,CblasTrans,1.0,dLayers[currentLayer+1],weights[currentLayer],0.0, dLayers[currentLayer]);
-	//currentLayer--;
 	
 	gsl_matrix_scale(dLayers[currentLayer],rate);
 	gsl_matrix_sub(biases[currentLayer],dLayers[currentLayer]);
 	currentLayer--;
 	gsl_blas_dgemm(CblasTrans,CblasNoTrans,1.0,layers[currentLayer],dLayers[currentLayer+1],0.0, dWeights[currentLayer]);
-
 	
+	//fprintf(stderr,"dLayers[%u](%lu,%lu) x weights[%u](%lu,%lu)=dLayers[%u](%lu,%lu)\n",currentLayer+1,layers[currentLayer+1]->size1,layers[currentLayer+1]->size2,currentLayer,weights[currentLayer]->size1,weights[currentLayer]->size2,currentLayer,dLayers[currentLayer]->size1,dLayers[currentLayer]->size2);
+	/*deActivate(layers[currentLayer+1],layers[currentLayer+1],activations[currentLayer]);
+	gsl_blas_dgemm(CblasNoTrans,CblasTrans,1.0,dLayers[currentLayer+1],weights[currentLayer],0.0, dLayers[currentLayer]);
+	gsl_matrix_sub(weights[currentLayer],dWeights[currentLayer]);
+	
+	gsl_matrix_scale(dLayers[currentLayer],rate);
+	gsl_matrix_sub(biases[currentLayer],dLayers[currentLayer]);
+	currentLayer--;
+	gsl_blas_dgemm(CblasTrans,CblasNoTrans,1.0,layers[currentLayer],dLayers[currentLayer+1],0.0, dWeights[currentLayer]);*/
+	
+	//fprintf(stderr,"dLayers[%u](%lu,%lu) x weights[%u](%lu,%lu)=dLayers[%u](%lu,%lu)\n",currentLayer+1,layers[currentLayer+1]->size1,layers[currentLayer+1]->size2,currentLayer,weights[currentLayer]->size1,weights[currentLayer]->size2,currentLayer,dLayers[currentLayer]->size1,dLayers[currentLayer]->size2);
+	deActivate(layers[currentLayer+1],layers[currentLayer+1],activations[currentLayer]);
+	gsl_blas_dgemm(CblasNoTrans,CblasTrans,1.0,dLayers[currentLayer+1],weights[currentLayer],0.0, dLayers[currentLayer]);
+	gsl_matrix_sub(weights[currentLayer],dWeights[currentLayer]);
+	
+	gsl_matrix_scale(dLayers[currentLayer],rate);
+	gsl_matrix_sub(biases[currentLayer],dLayers[currentLayer]);
+	
+	currentLayer--;
+	deActivate(layers[currentLayer],layers[currentLayer],activations[currentLayer-1]);
+	gsl_blas_dgemm(CblasTrans,CblasNoTrans,1.0,layers[currentLayer],dLayers[currentLayer+1],0.0, dWeights[currentLayer]);
 	gsl_matrix_sub(weights[currentLayer],dWeights[currentLayer]);
 }
 
@@ -205,4 +218,33 @@ void deSigmoid(gsl_matrix* in,gsl_matrix* out)			//sigmoid^-1
 	}
 }
 
+void activate(gsl_matrix* in,gsl_matrix* out,uint8_t activation)
+{
+	switch(activation)
+	{
+		case(SIGMOID):
+			sigmoid(in,out);
+			break;
+		case(SOFTMAX):
+			softmax(in,out);
+			break;
+		default:
+			break;//linear
+	}
+}
+
+void deActivate(gsl_matrix* in,gsl_matrix* out,uint8_t activation)
+{
+	switch(activation)
+	{
+		case(SIGMOID):
+			deSigmoid(in,out);
+			break;
+		case(SOFTMAX):
+			deSoftmax(in,out);
+			break;
+		default:
+			break;//linear
+	}
+}
 	
