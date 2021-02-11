@@ -14,18 +14,18 @@ void printDigit(uint8_t* trainingData,int32_t height,int32_t width,int32_t id,ui
 		for(int32_t xx=0;xx<width;xx++)
 		{
 			//fprintf(stdout,"%02x",trainingData[xx+width*yy]);
-			fprintf(stdout,"%s",pointer[xx+width*yy]>127?digits:"  ");
+			fprintf(stdout,"%s",pointer[xx+width*yy]>63?digits:"  ");
 		}
 		fprintf(stdout,"\n");
 	}
 }
 
-void printProbabilities(uint8_t* labels,gsl_matrix* probabilities,uint32_t id)
+void printProbabilities(uint8_t* labels,gsl_matrix* probabilities,uint32_t id,int detected)
 {
 	//fprintf(stderr,"Probabilities(%lu,%lu):\n",probabilities->size1,probabilities->size2);
 	double sum=0.0;
 	double tmp=0.0;
-	fprintf(stdout,"Label: %u, probabilities: ",labels[id]);
+	fprintf(stdout,"Label: %u, Detected: %i, prob: ",labels[id],detected==-1?labels[id]:detected);
 	for(uint8_t jj=0;jj<10;jj++)
 	{
 		tmp=gsl_matrix_get(probabilities,0,jj);
@@ -95,6 +95,26 @@ void printWeights(gsl_matrix** weights,uint8_t numberOfLayers)
 				{
 					fprintf(stdout,"\n");
 				}
+			}
+			fprintf(stdout,"\n\n");
+		}
+		fprintf(stdout,"\n\n\n");
+	}
+	fprintf(stdout,"\n");
+}
+
+void printBiases(gsl_matrix** biases,uint8_t numberOfLayers)
+{
+	fprintf(stdout,"\n");
+	for(uint8_t ii=0;ii<numberOfLayers;ii++)
+	{
+		fprintf(stdout,"Bias^T %u (%lu,%lu)^T:\n",ii,biases[ii]->size1,biases[ii]->size2);
+			
+		for(uint32_t jj=0;jj<biases[ii]->size1;jj++)
+		{
+			for(uint32_t kk=0;kk<biases[ii]->size2;kk++)
+			{
+				fprintf(stdout,"%0.5lf;",gsl_matrix_get(biases[ii],jj,kk));
 			}
 			fprintf(stdout,"\n\n");
 		}

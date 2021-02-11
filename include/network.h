@@ -16,8 +16,8 @@ gsl_matrix** prepareWeights(uint8_t numberOfLayers,uint32_t* numberOfLayersPoint
 void unloadLayers(gsl_matrix** layers,uint8_t numberOfLayers);
 void unloadWeights(gsl_matrix** weights,uint8_t numberOfLayers);
 double calculateLoss(gsl_matrix* probabilities,uint8_t* label, int32_t id);
-void forwardPass(int32_t id,uint8_t* data,gsl_matrix** layers,gsl_matrix** weights);
-void backwardPass(int32_t id,uint8_t* data,uint8_t* labels,gsl_matrix** layers,gsl_matrix** weights,double rate,gsl_matrix** dWeights,gsl_matrix** dLayers);
+void forwardPass(int32_t id,uint8_t* data,gsl_matrix** layers,gsl_matrix** weights,gsl_matrix** biases,uint8_t numberOfLayers);
+void backwardPass(int32_t id,uint8_t* data,uint8_t* labels,gsl_matrix** layers,gsl_matrix** weights,gsl_matrix** biases,double rate,gsl_matrix** dWeights,gsl_matrix** dLayers,gsl_matrix** dBiases,uint8_t numberOfLayers);
 
 inline double randomUniform(double from, double to){return from+(to-from)*((double) rand () / RAND_MAX);}
 inline double _sigmoid(double x){return 1.0/(1.0+exp(-x));}	
